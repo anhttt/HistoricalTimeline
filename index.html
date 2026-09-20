@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dòng Chảy Lịch Sử Thế Giới</title>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0c1220;
+  --bg-surface: #131b2e;
+  --bg-card: #1a2440;
+  --text: #d4dae8;
+  --text-muted: #7a8ba8;
+  --text-heading: #eaf0ff;
+  --line: #2a3a5c;
+  --science: #3ec9a7;
+  --politics: #e86f5c;
+  --society: #b07ce8;
+  --music: #e8b84c;
+  --cinema: #e86ca0;
+  --art: #6cb8e8;
+  --tech: #5c8ce8;
+  --war: #c95050;
+  --literature: #8bc97a;
+  --sports: #e89850;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f5f3ef;
+    --bg-surface: #eae7e1;
+    --bg-card: #ffffff;
+    --text: #3a3530;
+    --text-muted: #7a7570;
+    --text-heading: #1a1510;
+    --line: #c8c2b8;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1220;
+  --bg-surface: #131b2e;
+  --bg-card: #1a2440;
+  --text: #d4dae8;
+  --text-muted: #7a8ba8;
+  --text-heading: #eaf0ff;
+  --line: #2a3a5c;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html {
+  scroll-padding-top: env(safe-area-inset-top, 0px);
+  scroll-behavior: smooth;
+}
+
+:root {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+.header {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 100;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  padding: 1.25rem 1.5rem 1rem;
+  backdrop-filter: blur(12px);
+}
+
+.header-inner {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.header h1 {
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-heading);
+  letter-spacing: -0.02em;
+  margin-bottom: 0.75rem;
+}
+
+.header h1 span {
+  font-weight: 400;
+  color: var(--text-muted);
+  font-size: 0.85em;
+}
+
+.search-box {
+  position: relative;
+  margin-bottom: 0.75rem;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 0.6rem 1rem 0.6rem 2.4rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.88rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.search-box input:focus {
+  border-color: var(--science);
+}
+
+.search-box input::placeholder { color: var(--text-muted); }
+
+.search-box svg {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  stroke: var(--text-muted);
+  fill: none;
+  stroke-width: 2;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.filter-btn {
+  padding: 0.3rem 0.7rem;
+  border-radius: 20px;
+  border: 1.5px solid var(--line);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.filter-btn:hover { border-color: var(--text); color: var(--text); }
+
+.filter-btn.active {
+  border-color: var(--cat-color, var(--text));
+  color: var(--cat-color, var(--text));
+  background: color-mix(in srgb, var(--cat-color, var(--text)) 12%, transparent);
+}
+
+.filter-btn.all-btn.active {
+  border-color: var(--text-heading);
+  color: var(--text-heading);
+  background: color-mix(in srgb, var(--text-heading) 10%, transparent);
+}
+
+.era-nav {
+  display: flex;
+  gap: 0.3rem;
+  margin-top: 0.6rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.era-nav::-webkit-scrollbar { display: none; }
+
+.era-btn {
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  border: none;
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.era-btn:hover { color: var(--text); background: var(--bg-card); }
+
+.timeline-container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+  position: relative;
+}
+
+.timeline-line {
+  position: absolute;
+  left: 1.5rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--line);
+}
+
+@media (min-width: 700px) {
+  .timeline-line { left: 50%; transform: translateX(-50%); }
+}
+
+.year-group {
+  position: relative;
+  margin-bottom: 2.5rem;
+}
+
+.year-marker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+  margin-left: -0.5rem;
+}
+
+.year-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2.5px solid var(--text-muted);
+  flex-shrink: 0;
+  z-index: 2;
+  margin-left: calc(1.5rem - 6px);
+}
+
+.year-label {
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-heading);
+  margin-left: 1rem;
+  letter-spacing: -0.02em;
+}
+
+@media (min-width: 700px) {
+  .year-marker { justify-content: center; margin-left: 0; }
+  .year-dot { margin-left: 0; }
+  .year-label {
+    position: absolute;
+    left: calc(50% + 1.5rem);
+  }
+  .year-group:nth-child(even) .year-label {
+    left: auto;
+    right: calc(50% + 1.5rem);
+  }
+}
+
+.events {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-left: calc(1.5rem + 1.25rem);
+}
+
+@media (min-width: 700px) {
+  .events { padding-left: 0; }
+}
+
+.event-card {
+  background: var(--bg-card);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  border-left: 3px solid var(--cat-color, var(--line));
+  position: relative;
+  transition: transform 0.2s, box-shadow 0.2s;
+  max-width: 100%;
+}
+
+.event-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+@media (min-width: 700px) {
+  .events {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .event-card {
+    width: calc(50% - 2rem);
+  }
+  .event-card.side-left {
+    align-self: flex-start;
+    border-left: none;
+    border-right: 3px solid var(--cat-color, var(--line));
+    text-align: right;
+    margin-right: auto;
+  }
+  .event-card.side-right {
+    align-self: flex-end;
+    margin-left: auto;
+  }
+  .event-card.side-left .event-cat { justify-content: flex-end; }
+}
+
+.event-cat {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.35rem;
+}
+
+.cat-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cat-color, var(--text-muted));
+  flex-shrink: 0;
+}
+
+.cat-name {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cat-color, var(--text-muted));
+}
+
+.event-title {
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-heading);
+  line-height: 1.35;
+  margin-bottom: 0.25rem;
+}
+
+.event-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.no-results {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.stats-bar {
+  display: flex;
+  gap: 1.5rem;
+  padding: 0.5rem 0 0;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.stats-bar span { font-weight: 600; color: var(--text); }
+
+.fade-in {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: fadeUp 0.4s ease forwards;
+}
+
+@keyframes fadeUp {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in { opacity: 1; transform: none; animation: none; }
+  .event-card:hover { transform: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <h1>Dòng Chảy Lịch Sử <span>— Thế Giới</span></h1>
+    <div class="search-box">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="search" placeholder="Tìm sự kiện, nhân vật, quốc gia...">
+    </div>
+    <div class="filters" id="filters"></div>
+    <div class="era-nav" id="erNav"></div>
+    <div class="stats-bar" id="stats"></div>
+  </div>
+</div>
+
+<div class="timeline-container" id="timeline">
+  <div class="timeline-line"></div>
+</div>
+
+<script>
+const CATEGORIES = {
+  'Khoa học':   { color: '#3ec9a7', key: 'science' },
+  'Chính trị':  { color: '#e86f5c', key: 'politics' },
+  'Xã hội':     { color: '#b07ce8', key: 'society' },
+  'Âm nhạc':    { color: '#e8b84c', key: 'music' },
+  'Điện ảnh':   { color: '#e86ca0', key: 'cinema' },
+  'Nghệ thuật': { color: '#6cb8e8', key: 'art' },
+  'Công nghệ':  { color: '#5c8ce8', key: 'tech' },
+  'Chiến tranh':{ color: '#c95050', key: 'war' },
+  'Văn học':    { color: '#8bc97a', key: 'literature' },
+  'Thể thao':  { color: '#e89850', key: 'sports' },
+};
+
+const EVENTS = [
+  { year: 1439, cat: 'Công nghệ', title: 'Gutenberg phát minh máy in', desc: 'Johannes Gutenberg tạo ra máy in chữ rời tại Đức, mở ra kỷ nguyên truyền bá tri thức đại chúng.' },
+  { year: 1492, cat: 'Chính trị', title: 'Columbus đến Châu Mỹ', desc: 'Christopher Columbus đặt chân lên quần đảo Bahamas, khởi đầu kỷ nguyên khám phá và thuộc địa hóa.' },
+  { year: 1503, cat: 'Nghệ thuật', title: 'Leonardo da Vinci vẽ Mona Lisa', desc: 'Bức chân dung nổi tiếng nhất thế giới bắt đầu được thực hiện tại Florence, Ý.' },
+  { year: 1543, cat: 'Khoa học', title: 'Copernicus công bố thuyết Nhật tâm', desc: 'Cuốn "De Revolutionibus" lật đổ mô hình Trái Đất là trung tâm vũ trụ.' },
+  { year: 1687, cat: 'Khoa học', title: 'Newton xuất bản Principia', desc: 'Định luật vạn vật hấp dẫn và ba định luật chuyển động đặt nền tảng cho vật lý cổ điển.' },
+  { year: 1776, cat: 'Chính trị', title: 'Tuyên ngôn Độc lập Hoa Kỳ', desc: 'Thomas Jefferson soạn thảo bản tuyên ngôn, khai sinh nước Mỹ thoát khỏi đế quốc Anh.' },
+  { year: 1789, cat: 'Chính trị', title: 'Cách mạng Pháp bùng nổ', desc: 'Nhân dân Paris tấn công ngục Bastille, lật đổ chế độ quân chủ chuyên chế.' },
+  { year: 1789, cat: 'Xã hội', title: 'Tuyên ngôn Nhân quyền và Dân quyền', desc: 'Quốc hội Pháp thông qua văn kiện nền tảng về quyền con người.' },
+  { year: 1804, cat: 'Văn học', title: 'Beethoven hoàn thành Giao hưởng số 3', desc: 'Bản "Eroica" đánh dấu bước ngoặt từ cổ điển sang lãng mạn trong âm nhạc.' },
+  { year: 1859, cat: 'Khoa học', title: 'Darwin xuất bản Nguồn gốc các loài', desc: 'Thuyết tiến hóa qua chọn lọc tự nhiên thay đổi hoàn toàn cách nhìn về sự sống.' },
+  { year: 1861, cat: 'Chiến tranh', title: 'Nội chiến Hoa Kỳ bắt đầu', desc: 'Xung đột giữa miền Bắc và miền Nam về chế độ nô lệ và quyền các bang.' },
+  { year: 1865, cat: 'Xã hội', title: 'Xóa bỏ chế độ nô lệ tại Mỹ', desc: 'Tu chính án thứ 13 chính thức bãi bỏ chế độ nô lệ trên toàn lãnh thổ Hoa Kỳ.' },
+  { year: 1876, cat: 'Công nghệ', title: 'Alexander Bell phát minh điện thoại', desc: 'Cuộc gọi điện thoại đầu tiên mở ra kỷ nguyên viễn thông hiện đại.' },
+  { year: 1895, cat: 'Điện ảnh', title: 'Anh em Lumière chiếu phim đầu tiên', desc: 'Buổi chiếu phim công cộng đầu tiên tại Paris đánh dấu sự ra đời của điện ảnh.' },
+  { year: 1903, cat: 'Công nghệ', title: 'Anh em Wright bay thành công', desc: 'Chuyến bay có động cơ đầu tiên tại Kitty Hawk, North Carolina kéo dài 12 giây.' },
+  { year: 1905, cat: 'Khoa học', title: 'Einstein công bố Thuyết tương đối hẹp', desc: 'Phương trình E=mc² thay đổi hoàn toàn vật lý học, mở ra kỷ nguyên nguyên tử.' },
+  { year: 1912, cat: 'Xã hội', title: 'Tàu Titanic chìm', desc: 'Con tàu "không thể chìm" va vào tảng băng trôi, hơn 1.500 người thiệt mạng.' },
+  { year: 1914, cat: 'Chiến tranh', title: 'Thế chiến I bùng nổ', desc: 'Vụ ám sát Thái tử Franz Ferdinand châm ngòi cuộc chiến tranh thế giới đầu tiên.' },
+  { year: 1917, cat: 'Chính trị', title: 'Cách mạng Tháng Mười Nga', desc: 'Đảng Bolshevik lật đổ chính phủ lâm thời, thành lập nhà nước xã hội chủ nghĩa đầu tiên.' },
+  { year: 1920, cat: 'Xã hội', title: 'Phụ nữ Mỹ giành quyền bầu cử', desc: 'Tu chính án thứ 19 cho phép phụ nữ tham gia bầu cử tại Hoa Kỳ.' },
+  { year: 1928, cat: 'Khoa học', title: 'Alexander Fleming phát hiện Penicillin', desc: 'Sự tình cờ dẫn đến khám phá kháng sinh đầu tiên, cứu sống hàng triệu người.' },
+  { year: 1929, cat: 'Xã hội', title: 'Đại Suy thoái kinh tế', desc: 'Thị trường chứng khoán Mỹ sụp đổ, kéo theo khủng hoảng kinh tế toàn cầu kéo dài cả thập kỷ.' },
+  { year: 1939, cat: 'Chiến tranh', title: 'Thế chiến II bắt đầu', desc: 'Đức Quốc Xã xâm lược Ba Lan, châm ngòi cuộc chiến tranh tàn khốc nhất lịch sử.' },
+  { year: 1939, cat: 'Điện ảnh', title: 'Cuốn theo chiều gió ra mắt', desc: 'Bộ phim sử thi dựa trên tiểu thuyết của Margaret Mitchell trở thành biểu tượng điện ảnh Hollywood.' },
+  { year: 1945, cat: 'Chiến tranh', title: 'Bom nguyên tử ném xuống Hiroshima', desc: 'Hoa Kỳ thả bom nguyên tử, chấm dứt Thế chiến II nhưng mở ra kỷ nguyên hạt nhân đáng sợ.' },
+  { year: 1945, cat: 'Chính trị', title: 'Liên Hợp Quốc được thành lập', desc: '51 quốc gia ký Hiến chương LHQ tại San Francisco với sứ mệnh giữ gìn hòa bình thế giới.' },
+  { year: 1947, cat: 'Chính trị', title: 'Ấn Độ giành độc lập', desc: 'Ấn Độ thoát khỏi ách thống trị của Anh, chia thành hai quốc gia Ấn Độ và Pakistan.' },
+  { year: 1953, cat: 'Khoa học', title: 'Watson & Crick khám phá cấu trúc DNA', desc: 'Mô hình xoắn kép DNA mở ra kỷ nguyên sinh học phân tử và di truyền học hiện đại.' },
+  { year: 1955, cat: 'Âm nhạc', title: 'Rock & Roll bùng nổ', desc: 'Elvis Presley, Chuck Berry và Little Richard đưa rock & roll thành hiện tượng văn hóa toàn cầu.' },
+  { year: 1957, cat: 'Công nghệ', title: 'Liên Xô phóng vệ tinh Sputnik', desc: 'Vệ tinh nhân tạo đầu tiên bay quanh Trái Đất, khởi đầu cuộc chạy đua không gian.' },
+  { year: 1960, cat: 'Âm nhạc', title: 'The Beatles thành lập', desc: 'Bốn chàng trai Liverpool tạo nên ban nhạc có ảnh hưởng lớn nhất lịch sử âm nhạc đại chúng.' },
+  { year: 1962, cat: 'Điện ảnh', title: 'James Bond 007 ra mắt', desc: 'Dr. No mở màn cho loạt phim điệp viên dài nhất và thành công nhất lịch sử điện ảnh.' },
+  { year: 1963, cat: 'Chính trị', title: 'Martin Luther King — "I Have a Dream"', desc: 'Bài diễn văn lịch sử tại Washington thúc đẩy phong trào dân quyền tại Hoa Kỳ.' },
+  { year: 1969, cat: 'Khoa học', title: 'Con người đặt chân lên Mặt Trăng', desc: 'Neil Armstrong và Buzz Aldrin đáp xuống Mặt Trăng trong sứ mệnh Apollo 11 của NASA.' },
+  { year: 1969, cat: 'Âm nhạc', title: 'Lễ hội Woodstock', desc: 'Hơn 400.000 người tụ họp tại New York trong lễ hội âm nhạc biểu tượng của thế hệ hippie.' },
+  { year: 1971, cat: 'Âm nhạc', title: 'John Lennon phát hành "Imagine"', desc: 'Ca khúc trở thành bài thánh ca của hòa bình và ước mơ về một thế giới không biên giới.' },
+  { year: 1972, cat: 'Điện ảnh', title: 'The Godfather ra mắt', desc: 'Kiệt tác của Francis Ford Coppola định nghĩa lại thể loại phim gangster.' },
+  { year: 1975, cat: 'Chiến tranh', title: 'Chiến tranh Việt Nam kết thúc', desc: 'Sài Gòn thống nhất, chấm dứt cuộc chiến kéo dài hơn hai thập kỷ.' },
+  { year: 1977, cat: 'Điện ảnh', title: 'Star Wars: A New Hope', desc: 'George Lucas tạo ra vũ trụ điện ảnh thay đổi Hollywood và văn hóa đại chúng mãi mãi.' },
+  { year: 1981, cat: 'Công nghệ', title: 'IBM ra mắt máy tính cá nhân', desc: 'IBM PC mở ra kỷ nguyên máy tính để bàn, đưa công nghệ vào mọi gia đình.' },
+  { year: 1986, cat: 'Khoa học', title: 'Thảm họa Chernobyl', desc: 'Vụ nổ lò phản ứng hạt nhân tại Ukraine gây ra thảm họa phóng xạ nghiêm trọng nhất lịch sử.' },
+  { year: 1989, cat: 'Chính trị', title: 'Bức tường Berlin sụp đổ', desc: 'Biểu tượng của Chiến tranh Lạnh bị phá bỏ, nước Đức tiến tới thống nhất.' },
+  { year: 1989, cat: 'Công nghệ', title: 'Tim Berners-Lee phát minh World Wide Web', desc: 'Hệ thống siêu văn bản toàn cầu ra đời tại CERN, thay đổi cách nhân loại giao tiếp.' },
+  { year: 1991, cat: 'Chính trị', title: 'Liên Xô tan rã', desc: 'Siêu cường cộng sản sụp đổ, chấm dứt Chiến tranh Lạnh và thay đổi bản đồ thế giới.' },
+  { year: 1994, cat: 'Chính trị', title: 'Nelson Mandela trở thành Tổng thống', desc: 'Nam Phi bầu cử dân chủ lần đầu, Mandela trở thành tổng thống da đen đầu tiên.' },
+  { year: 1994, cat: 'Điện ảnh', title: 'Forrest Gump & Pulp Fiction', desc: 'Hai bộ phim kinh điển ra mắt cùng năm, đại diện cho hai phong cách hoàn toàn khác biệt.' },
+  { year: 1997, cat: 'Văn học', title: 'Harry Potter ra mắt', desc: 'J.K. Rowling xuất bản cuốn đầu tiên, khởi đầu hiện tượng văn hóa đại chúng toàn cầu.' },
+  { year: 1997, cat: 'Khoa học', title: 'Cừu Dolly — nhân bản vô tính', desc: 'Con cừu nhân bản đầu tiên tại Scotland mở ra kỷ nguyên mới trong công nghệ sinh học.' },
+  { year: 1998, cat: 'Công nghệ', title: 'Google được thành lập', desc: 'Larry Page và Sergey Brin khởi nghiệp từ gara xe, tạo nên công cụ tìm kiếm thống trị Internet.' },
+  { year: 2001, cat: 'Chính trị', title: 'Vụ tấn công 11 tháng 9', desc: 'Hai tòa tháp Trung tâm Thương mại Thế giới bị tấn công, thay đổi chính trị và an ninh toàn cầu.' },
+  { year: 2001, cat: 'Công nghệ', title: 'Wikipedia ra mắt', desc: 'Bách khoa toàn thư tự do trực tuyến do cộng đồng đóng góp, dân chủ hóa tri thức.' },
+  { year: 2003, cat: 'Khoa học', title: 'Hoàn thành bản đồ gene người', desc: 'Dự án Bộ gene Người giải mã toàn bộ DNA con người, mở đường cho y học cá thể hóa.' },
+  { year: 2004, cat: 'Công nghệ', title: 'Facebook ra đời', desc: 'Mark Zuckerberg tạo mạng xã hội từ ký túc xá Harvard, thay đổi cách thế giới kết nối.' },
+  { year: 2007, cat: 'Công nghệ', title: 'iPhone ra mắt', desc: 'Steve Jobs giới thiệu iPhone, khai sinh kỷ nguyên smartphone và thay đổi cuộc sống hiện đại.' },
+  { year: 2008, cat: 'Xã hội', title: 'Khủng hoảng tài chính toàn cầu', desc: 'Sụp đổ của Lehman Brothers gây ra cuộc khủng hoảng kinh tế nghiêm trọng nhất kể từ 1929.' },
+  { year: 2008, cat: 'Chính trị', title: 'Barack Obama đắc cử tổng thống', desc: 'Tổng thống da đen đầu tiên của Hoa Kỳ, biểu tượng cho sự thay đổi lịch sử.' },
+  { year: 2010, cat: 'Xã hội', title: 'Mùa xuân Ả Rập', desc: 'Làn sóng biểu tình và nổi dậy lan rộng khắp Trung Đông và Bắc Phi.' },
+  { year: 2012, cat: 'Khoa học', title: 'Phát hiện hạt Higgs Boson', desc: 'CERN xác nhận sự tồn tại của "hạt của Chúa", hoàn thiện Mô hình Chuẩn vật lý hạt.' },
+  { year: 2012, cat: 'Âm nhạc', title: 'Gangnam Style — K-Pop vươn ra thế giới', desc: 'PSY tạo nên hiện tượng viral toàn cầu, đưa K-Pop lên bản đồ âm nhạc quốc tế.' },
+  { year: 2015, cat: 'Xã hội', title: 'Hiệp định Paris về biến đổi khí hậu', desc: '196 quốc gia cam kết giảm phát thải, giữ nhiệt độ toàn cầu tăng dưới 2°C.' },
+  { year: 2016, cat: 'Công nghệ', title: 'AlphaGo đánh bại kỳ thủ cờ vây', desc: 'AI của DeepMind thắng Lee Sedol, đánh dấu bước ngoặt trong trí tuệ nhân tạo.' },
+  { year: 2019, cat: 'Khoa học', title: 'Chụp ảnh hố đen đầu tiên', desc: 'Kính thiên văn Event Horizon chụp được hình ảnh đầu tiên của hố đen, cách Trái Đất 55 triệu năm ánh sáng.' },
+  { year: 2020, cat: 'Xã hội', title: 'Đại dịch COVID-19', desc: 'Virus SARS-CoV-2 lây lan toàn cầu, thay đổi sâu sắc cuộc sống, kinh tế và y tế thế giới.' },
+  { year: 2020, cat: 'Khoa học', title: 'Vaccine COVID-19 phát triển kỷ lục', desc: 'Vaccine mRNA được phát triển trong chưa đầy 1 năm, kỳ tích chưa từng có trong y học.' },
+  { year: 2022, cat: 'Chiến tranh', title: 'Nga xâm lược Ukraine', desc: 'Cuộc chiến tranh quy mô lớn nhất tại châu Âu kể từ Thế chiến II.' },
+  { year: 2022, cat: 'Công nghệ', title: 'ChatGPT ra mắt', desc: 'OpenAI phát hành chatbot AI, khởi đầu cuộc cách mạng trí tuệ nhân tạo tạo sinh.' },
+  { year: 2023, cat: 'Công nghệ', title: 'AI tạo sinh bùng nổ toàn cầu', desc: 'GPT-4, Claude, Midjourney và hàng loạt mô hình AI thay đổi cách con người làm việc và sáng tạo.' },
+];
+
+let activeFilters = new Set(['all']);
+let searchQuery = '';
+
+function getColor(cat) {
+  return CATEGORIES[cat]?.color || '#7a8ba8';
+}
+
+function buildFilters() {
+  const el = document.getElementById('filters');
+  let html = `<button class="filter-btn all-btn active" data-cat="all">Tất cả</button>`;
+  for (const [name, { color }] of Object.entries(CATEGORIES)) {
+    html += `<button class="filter-btn" data-cat="${name}" style="--cat-color:${color}">${name}</button>`;
+  }
+  el.innerHTML = html;
+  el.addEventListener('click', e => {
+    const btn = e.target.closest('.filter-btn');
+    if (!btn) return;
+    const cat = btn.dataset.cat;
+    if (cat === 'all') {
+      activeFilters = new Set(['all']);
+    } else {
+      activeFilters.delete('all');
+      if (activeFilters.has(cat)) {
+        activeFilters.delete(cat);
+        if (activeFilters.size === 0) activeFilters.add('all');
+      } else {
+        activeFilters.add(cat);
+      }
+    }
+    el.querySelectorAll('.filter-btn').forEach(b => {
+      const c = b.dataset.cat;
+      b.classList.toggle('active', activeFilters.has(c));
+    });
+    render();
+  });
+}
+
+function buildEraNav() {
+  const eras = [
+    { label: '1400s', year: 1439 },
+    { label: '1500s', year: 1503 },
+    { label: '1600s', year: 1687 },
+    { label: '1700s', year: 1776 },
+    { label: '1800s', year: 1804 },
+    { label: '1900–50', year: 1903 },
+    { label: '1950–80', year: 1953 },
+    { label: '1980–00', year: 1981 },
+    { label: '2000s', year: 2001 },
+    { label: '2010s', year: 2010 },
+    { label: '2020s', year: 2020 },
+  ];
+  const nav = document.getElementById('erNav');
+  nav.innerHTML = eras.map(e => `<button class="era-btn" data-year="${e.year}">${e.label}</button>`).join('');
+  nav.addEventListener('click', e => {
+    const btn = e.target.closest('.era-btn');
+    if (!btn) return;
+    const yr = btn.dataset.year;
+    const el = document.getElementById('year-' + yr);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+}
+
+function filterEvents() {
+  let filtered = EVENTS;
+  if (!activeFilters.has('all')) {
+    filtered = filtered.filter(e => activeFilters.has(e.cat));
+  }
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    filtered = filtered.filter(e =>
+      e.title.toLowerCase().includes(q) ||
+      e.desc.toLowerCase().includes(q) ||
+      e.cat.toLowerCase().includes(q) ||
+      String(e.year).includes(q)
+    );
+  }
+  return filtered;
+}
+
+function render() {
+  const container = document.getElementById('timeline');
+  const filtered = filterEvents();
+
+  const grouped = {};
+  filtered.forEach(e => {
+    if (!grouped[e.year]) grouped[e.year] = [];
+    grouped[e.year].push(e);
+  });
+
+  const years = Object.keys(grouped).sort((a, b) => a - b);
+
+  if (years.length === 0) {
+    container.innerHTML = `<div class="timeline-line"></div><div class="no-results">Không tìm thấy sự kiện nào phù hợp.</div>`;
+    document.getElementById('stats').innerHTML = '';
+    return;
+  }
+
+  let sideToggle = 0;
+  let html = '<div class="timeline-line"></div>';
+
+  years.forEach((year, yi) => {
+    html += `<div class="year-group fade-in" id="year-${year}" style="animation-delay:${Math.min(yi * 0.04, 0.8)}s">`;
+    html += `<div class="year-marker"><div class="year-dot"></div><div class="year-label">${year}</div></div>`;
+    html += `<div class="events">`;
+    grouped[year].forEach(ev => {
+      const color = getColor(ev.cat);
+      const side = sideToggle++ % 2 === 0 ? 'side-left' : 'side-right';
+      html += `<div class="event-card ${side}" style="--cat-color:${color}">`;
+      html += `<div class="event-cat"><span class="cat-dot" style="background:${color}"></span><span class="cat-name" style="color:${color}">${ev.cat}</span></div>`;
+      html += `<div class="event-title">${highlight(ev.title)}</div>`;
+      html += `<div class="event-desc">${highlight(ev.desc)}</div>`;
+      html += `</div>`;
+    });
+    html += `</div></div>`;
+  });
+
+  container.innerHTML = html;
+
+  const cats = new Set(filtered.map(e => e.cat));
+  document.getElementById('stats').innerHTML =
+    `<span>${filtered.length}</span> sự kiện · <span>${years.length}</span> năm · <span>${cats.size}</span> danh mục`;
+}
+
+function highlight(text) {
+  if (!searchQuery) return text;
+  const q = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return text.replace(new RegExp(`(${q})`, 'gi'), '<mark style="background:#e8b84c33;color:inherit;border-radius:2px;padding:0 2px">$1</mark>');
+}
+
+document.getElementById('search').addEventListener('input', e => {
+  searchQuery = e.target.value.trim();
+  render();
+});
+
+buildFilters();
+buildEraNav();
+render();
+</script>
+</body>
+</html>
