@@ -7,43 +7,54 @@
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #0c1220;
-  --bg-surface: #131b2e;
-  --bg-card: #1a2440;
-  --text: #d4dae8;
-  --text-muted: #7a8ba8;
-  --text-heading: #eaf0ff;
-  --line: #2a3a5c;
-  --science: #3ec9a7;
-  --politics: #e86f5c;
-  --society: #b07ce8;
-  --music: #e8b84c;
-  --cinema: #e86ca0;
-  --art: #6cb8e8;
-  --tech: #5c8ce8;
-  --war: #c95050;
-  --literature: #8bc97a;
-  --sports: #e89850;
+  /* Bảng màu: 2B6B75 · 90C3BE · EEF6F9 · FADED4 · D8987D */
+  --bg: #EEF6F9;
+  --bg-surface: #E2EEF2;
+  --bg-card: #FFFFFF;
+  --text: #33555C;
+  --text-muted: #77949B;
+  --text-heading: #1F4F58;
+  --line: #CBDFE5;
+  --accent: #2B6B75;
+  --accent-soft: #90C3BE;
+  --accent-warm: #D8987D;
+  --accent-warm-soft: #FADED4;
+  --shadow: 0 1px 2px rgba(43,107,117,0.06), 0 6px 18px rgba(43,107,117,0.07);
+  --shadow-hover: 0 2px 6px rgba(43,107,117,0.10), 0 12px 28px rgba(43,107,117,0.12);
 }
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
-    --bg: #f5f3ef;
-    --bg-surface: #eae7e1;
-    --bg-card: #ffffff;
-    --text: #3a3530;
-    --text-muted: #7a7570;
-    --text-heading: #1a1510;
-    --line: #c8c2b8;
-  }
-}
+
 :root[data-theme="dark"] {
-  --bg: #0c1220;
-  --bg-surface: #131b2e;
-  --bg-card: #1a2440;
-  --text: #d4dae8;
-  --text-muted: #7a8ba8;
-  --text-heading: #eaf0ff;
-  --line: #2a3a5c;
+  --bg: #12282C;
+  --bg-surface: #173238;
+  --bg-card: #1C3C43;
+  --text: #D2E5E8;
+  --text-muted: #86A8AE;
+  --text-heading: #EEF6F9;
+  --line: #2C5159;
+  --accent: #90C3BE;
+  --accent-soft: #2B6B75;
+  --accent-warm: #D8987D;
+  --accent-warm-soft: #6B4A3D;
+  --shadow: 0 1px 2px rgba(0,0,0,0.20), 0 6px 18px rgba(0,0,0,0.22);
+  --shadow-hover: 0 2px 6px rgba(0,0,0,0.26), 0 12px 28px rgba(0,0,0,0.30);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12282C;
+    --bg-surface: #173238;
+    --bg-card: #1C3C43;
+    --text: #D2E5E8;
+    --text-muted: #86A8AE;
+    --text-heading: #EEF6F9;
+    --line: #2C5159;
+    --accent: #90C3BE;
+    --accent-soft: #2B6B75;
+    --accent-warm: #D8987D;
+    --accent-warm-soft: #6B4A3D;
+    --shadow: 0 1px 2px rgba(0,0,0,0.20), 0 6px 18px rgba(0,0,0,0.22);
+    --shadow-hover: 0 2px 6px rgba(0,0,0,0.26), 0 12px 28px rgba(0,0,0,0.30);
+  }
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -70,10 +81,10 @@ body {
   position: sticky;
   top: env(safe-area-inset-top, 0px);
   z-index: 100;
-  background: var(--bg);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
   border-bottom: 1px solid var(--line);
   padding: 1rem 1.5rem 0.85rem;
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(14px);
 }
 
 .header-inner {
@@ -111,14 +122,85 @@ body {
 
 /* ===== Bố cục hai cột ===== */
 .layout {
-  max-width: 1400px;
+  max-width: 1620px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 234px minmax(0, 1fr);
+  grid-template-columns: 234px minmax(0, 1fr) 176px;
   gap: 1.5rem;
   padding: 0 1.5rem;
   align-items: start;
 }
+
+/* ===== Sidebar năm (bên phải) ===== */
+.yearbar {
+  position: sticky;
+  top: calc(env(safe-area-inset-top, 0px) + 7.5rem);
+  max-height: calc(100vh - 9rem);
+  overflow-y: auto;
+  padding: 1.25rem 0 2rem;
+  scrollbar-width: thin;
+}
+.yearbar::-webkit-scrollbar { width: 6px; }
+.yearbar::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+
+.year-list { display: flex; flex-direction: column; gap: 1px; }
+
+.year-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.28rem 0.5rem;
+  border: none;
+  border-left: 2px solid transparent;
+  border-radius: 0 6px 6px 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.76rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.year-item:hover { background: var(--bg-surface); color: var(--text); }
+
+.year-item.current {
+  border-left-color: var(--accent-warm);
+  color: var(--text-heading);
+  background: var(--accent-warm-soft);
+}
+
+.year-item .yi-count {
+  margin-left: auto;
+  font-size: 0.66rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.yearbar-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.65rem;
+  padding: 0 0.5rem;
+}
+
+.yearbar-head .sidebar-title { margin-bottom: 0; }
+
+.yb-toggle {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+.yb-toggle:hover { color: var(--text); }
 
 .sidebar {
   position: sticky;
@@ -176,7 +258,7 @@ body {
 }
 
 .cat-item.all-item .cat-swatch {
-  background: linear-gradient(135deg, #3ec9a7, #e8607d, #5c8ce8);
+  background: linear-gradient(135deg, #2B6B75, #90C3BE, #D8987D);
 }
 
 .cat-count {
@@ -194,7 +276,7 @@ body {
   border-top: 1px solid var(--line);
   margin-top: 2rem;
   padding: 2.25rem 1.5rem 3rem;
-  background: var(--bg-surface);
+  background: linear-gradient(180deg, var(--bg-surface), var(--accent-warm-soft));
 }
 
 .footer-inner {
@@ -254,7 +336,8 @@ body {
 }
 
 .search-box input:focus {
-  border-color: var(--science);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 .search-box input::placeholder { color: var(--text-muted); }
@@ -328,7 +411,7 @@ body {
   white-space: nowrap;
   transition: all 0.2s;
 }
-.era-btn:hover { color: var(--text); background: var(--bg-card); }
+.era-btn:hover { color: var(--accent); background: var(--accent-warm-soft); }
 
 .timeline-container {
   padding: 1.5rem 0 3rem;
@@ -342,7 +425,8 @@ body {
   top: 0;
   bottom: 0;
   width: 2px;
-  background: var(--line);
+  background: linear-gradient(to bottom, transparent, var(--accent-soft) 6%, var(--accent-soft) 94%, transparent);
+  opacity: 0.55;
 }
 
 @media (min-width: 1100px) {
@@ -367,7 +451,7 @@ body {
   height: 12px;
   border-radius: 50%;
   background: var(--bg);
-  border: 2.5px solid var(--text-muted);
+  border: 2.5px solid var(--accent);
   flex-shrink: 0;
   z-index: 2;
   margin-left: calc(1.5rem - 6px);
@@ -377,7 +461,7 @@ body {
   font-family: 'Crimson Pro', Georgia, serif;
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--text-heading);
+  color: var(--accent);
   margin-left: 1rem;
   letter-spacing: -0.02em;
 }
@@ -408,17 +492,18 @@ body {
 
 .event-card {
   background: var(--bg-card);
-  border-radius: 10px;
-  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  padding: 0.9rem 1.05rem;
   border-left: 3px solid var(--cat-color, var(--line));
+  box-shadow: var(--shadow);
   position: relative;
   transition: transform 0.2s, box-shadow 0.2s;
   max-width: 100%;
 }
 
 .event-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
 }
 
 @media (min-width: 1100px) {
@@ -513,6 +598,11 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@media (max-width: 1280px) {
+  .layout { grid-template-columns: 234px minmax(0, 1fr); max-width: 1180px; }
+  .yearbar { display: none; }
+}
+
 @media (max-width: 900px) {
   .layout { grid-template-columns: 1fr; gap: 0; padding: 0 1.25rem; }
   .menu-toggle { display: inline-flex; }
@@ -581,6 +671,14 @@ body {
   <div class="timeline-container" id="timeline">
     <div class="timeline-line"></div>
   </div>
+
+  <aside class="yearbar" id="yearbar">
+    <div class="yearbar-head">
+      <div class="sidebar-title">Mốc năm</div>
+      <button class="yb-toggle" id="ybToggle">Gộp</button>
+    </div>
+    <div class="year-list" id="yearList"></div>
+  </aside>
 </div>
 
 <footer class="site-footer">
@@ -593,36 +691,36 @@ body {
 
 <script>
 const CATEGORIES = {
-  'Khoa học':   { color: '#3ec9a7', key: 'science' },
-  'Xã hội':     { color: '#b07ce8', key: 'society' },
-  'Kinh tế':    { color: '#d4a843', key: 'economics' },
-  'Âm nhạc':    { color: '#e8b84c', key: 'music' },
-  'Điện ảnh':   { color: '#e86ca0', key: 'cinema' },
-  'Nghệ thuật': { color: '#6cb8e8', key: 'art' },
-  'Công nghệ':  { color: '#5c8ce8', key: 'tech' },
-  'Văn học':    { color: '#8bc97a', key: 'literature' },
-  'Xác suất Thống kê': { color: '#9b8ec4', key: 'statistics' },
-  'Kinh tế lượng': { color: '#4bb8a5', key: 'econometrics' },
-  'Phát minh': { color: '#e8724c', key: 'invention' },
-  'Trí tuệ nhân tạo': { color: '#7de8d4', key: 'ai' },
-  'Pháp luật': { color: '#c4a35c', key: 'law' },
-  'Toán học': { color: '#5ad4e8', key: 'math' },
-  'Triết học': { color: '#c98ed4', key: 'philosophy' },
-  'Lý thuyết trò chơi': { color: '#7ac4a0', key: 'gametheory' },
-  'Báo chí': { color: '#8ea8c4', key: 'journalism' },
-  'Y học': { color: '#e8607d', key: 'medicine' },
-  'Năng lượng': { color: '#e8a33c', key: 'energy' },
-  'Kiến trúc': { color: '#9ba8b8', key: 'architecture' },
-  'Thiên văn học': { color: '#6f7fd4', key: 'astronomy' },
-  'Hội họa': { color: '#d4736c', key: 'painting' },
-  'Môi trường': { color: '#5cb87a', key: 'environment' },
-  'Đại học': { color: '#b0895c', key: 'university' },
-  'Giải Turing': { color: '#56c2c9', key: 'turing' },
-  'World Cup': { color: '#4a9d5f', key: 'worldcup' },
-  'Thế vận hội': { color: '#c98f4a', key: 'olympics' },
-  'Internet': { color: '#4fa8d8', key: 'internet' },
-  'Giải Nobel': { color: '#d4b04c', key: 'nobel' },
-  'Thể thao':  { color: '#e89850', key: 'sports' },
+  'Khoa học':              { color: '#3ec9a7', key: 'science' },
+  'Xã hội':                { color: '#b07ce8', key: 'society' },
+  'Kinh tế':               { color: '#d4a843', key: 'economics' },
+  'Âm nhạc':               { color: '#e8b84c', key: 'music' },
+  'Điện ảnh':              { color: '#e86ca0', key: 'cinema' },
+  'Nghệ thuật':            { color: '#6cb8e8', key: 'art' },
+  'Công nghệ':             { color: '#5c8ce8', key: 'tech' },
+  'Văn học':               { color: '#8bc97a', key: 'literature' },
+  'Xác suất Thống kê':     { color: '#9b8ec4', key: 'statistics' },
+  'Kinh tế lượng':         { color: '#4bb8a5', key: 'econometrics' },
+  'Phát minh':             { color: '#e8724c', key: 'invention' },
+  'Trí tuệ nhân tạo':      { color: '#7de8d4', key: 'ai' },
+  'Pháp luật':             { color: '#c4a35c', key: 'law' },
+  'Toán học':              { color: '#5ad4e8', key: 'math' },
+  'Triết học':             { color: '#c98ed4', key: 'philosophy' },
+  'Lý thuyết trò chơi':    { color: '#7ac4a0', key: 'gametheory' },
+  'Báo chí':               { color: '#8ea8c4', key: 'journalism' },
+  'Y học':                 { color: '#e8607d', key: 'medicine' },
+  'Năng lượng':            { color: '#e8a33c', key: 'energy' },
+  'Kiến trúc':             { color: '#9ba8b8', key: 'architecture' },
+  'Thiên văn học':         { color: '#6f7fd4', key: 'astronomy' },
+  'Hội họa':               { color: '#d4736c', key: 'painting' },
+  'Môi trường':            { color: '#5cb87a', key: 'environment' },
+  'Đại học':               { color: '#b0895c', key: 'university' },
+  'Giải Turing':           { color: '#56c2c9', key: 'turing' },
+  'World Cup':             { color: '#4a9d5f', key: 'worldcup' },
+  'Thế vận hội':           { color: '#c98f4a', key: 'olympics' },
+  'Internet':              { color: '#4fa8d8', key: 'internet' },
+  'Giải Nobel':            { color: '#d4b04c', key: 'nobel' },
+  'Thể thao':              { color: '#e89850', key: 'sports' },
 };
 
 const EVENTS = [
@@ -2574,12 +2672,99 @@ function render() {
   const cats = new Set(filtered.map(e => e.cat));
   document.getElementById('stats').innerHTML =
     `<span>${filtered.length}</span> sự kiện · <span>${years.length}</span> năm · <span>${cats.size}</span> danh mục`;
+
+  buildYearBar(years.map(Number), grouped);
+}
+
+/* ===== Sidebar năm bên phải ===== */
+let yearGrouped = true;
+
+function bucketOf(year) {
+  if (year < -10000) return { key: 'prehistory', label: 'Tiền sử', anchor: year };
+  if (year < 0) {
+    const c = Math.ceil(Math.abs(year) / 100) * 100;
+    return { key: 'bc' + c, label: `TK ${c / 100} TCN`, anchor: year };
+  }
+  if (year < 1800) {
+    const c = Math.floor(year / 100) * 100;
+    return { key: 'c' + c, label: `TK ${c / 100 + 1}`, anchor: year };
+  }
+  const d = Math.floor(year / 10) * 10;
+  return { key: 'd' + d, label: `${d}s`, anchor: year };
+}
+
+function buildYearBar(years, grouped) {
+  const list = document.getElementById('yearList');
+  if (!list) return;
+  let rows;
+
+  if (yearGrouped) {
+    const map = new Map();
+    years.forEach(y => {
+      const b = bucketOf(y);
+      if (!map.has(b.key)) map.set(b.key, { label: b.label, anchor: y, count: 0 });
+      map.get(b.key).count += grouped[y].length;
+    });
+    rows = [...map.values()];
+  } else {
+    rows = years.map(y => ({ label: fmtYear(y), anchor: y, count: grouped[y].length }));
+  }
+
+  list.innerHTML = rows.map(r =>
+    `<button class="year-item" data-anchor="${r.anchor}">${r.label}<span class="yi-count">${r.count}</span></button>`
+  ).join('');
+}
+
+function initYearBar() {
+  const list = document.getElementById('yearList');
+  list.addEventListener('click', e => {
+    const btn = e.target.closest('.year-item');
+    if (!btn) return;
+    const el = document.getElementById('year-' + btn.dataset.anchor);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  document.getElementById('ybToggle').addEventListener('click', e => {
+    yearGrouped = !yearGrouped;
+    e.target.textContent = yearGrouped ? 'Gộp' : 'Tách';
+    render();
+  });
+
+  let ticking = false;
+  window.addEventListener('scroll', () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      markCurrentYear();
+      ticking = false;
+    });
+  }, { passive: true });
+}
+
+function markCurrentYear() {
+  const items = document.querySelectorAll('.year-item');
+  if (!items.length) return;
+  const offset = 160;
+  let currentIdx = 0;
+  items.forEach((it, i) => {
+    const el = document.getElementById('year-' + it.dataset.anchor);
+    if (el && el.getBoundingClientRect().top <= offset) currentIdx = i;
+  });
+  items.forEach((it, i) => it.classList.toggle('current', i === currentIdx));
+  const active = items[currentIdx];
+  const bar = document.getElementById('yearbar');
+  if (active && bar) {
+    const aTop = active.offsetTop, aH = active.offsetHeight;
+    if (aTop < bar.scrollTop || aTop + aH > bar.scrollTop + bar.clientHeight) {
+      bar.scrollTop = aTop - bar.clientHeight / 2 + aH / 2;
+    }
+  }
 }
 
 function highlight(text) {
   if (!searchQuery) return text;
   const q = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return text.replace(new RegExp(`(${q})`, 'gi'), '<mark style="background:#e8b84c33;color:inherit;border-radius:2px;padding:0 2px">$1</mark>');
+  return text.replace(new RegExp(`(${q})`, 'gi'), '<mark style="background:var(--accent-warm-soft);color:inherit;border-radius:3px;padding:0 3px">$1</mark>');
 }
 
 document.getElementById('search').addEventListener('input', e => {
@@ -2590,7 +2775,9 @@ document.getElementById('search').addEventListener('input', e => {
 buildFilters();
 buildEraNav();
 initSidebarToggle();
+initYearBar();
 buildFooterMeta();
+markCurrentYear();
 render();
 </script>
 </body>
