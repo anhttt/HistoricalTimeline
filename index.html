@@ -2250,41 +2250,47 @@ function openIDB(){
 }
 
 async function loadFlowerImages(){
-  try{
-    const db=await openIDB();
-    const tx=db.transaction(IDB_STORE,'readonly');
-    const req=tx.objectStore(IDB_STORE).get('flowerImages');
-    const data=await new Promise((res,rej)=>{req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error);});
-    db.close();
-    if(data){flowerImages=data;return;}
-    // Auto-migrate from localStorage
-    const ls=localStorage.getItem('enc_images');
-    if(ls){
-      flowerImages=JSON.parse(ls);
-      await saveFlowerImages();
-      localStorage.removeItem('enc_images');
-      console.log('Migrated images from localStorage to IndexedDB');
-    }
-  }catch(e){
-    console.log('IDB load error, fallback localStorage',e);
-    try{const d=localStorage.getItem('enc_images');if(d)flowerImages=JSON.parse(d);}catch(e2){}
+  // Try IndexedDB first
+  if(typeof indexedDB!=='undefined'){
+    try{
+      const db=await openIDB();
+      const tx=db.transaction(IDB_STORE,'readonly');
+      const req=tx.objectStore(IDB_STORE).get('flowerImages');
+      const data=await new Promise((res,rej)=>{req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error);});
+      db.close();
+      if(data&&Object.keys(data).length){flowerImages=data;return;}
+    }catch(e){console.log('IDB load error',e);}
   }
+  // Fallback: localStorage (also handles migration)
+  try{
+    const d=localStorage.getItem('enc_images');
+    if(d){
+      flowerImages=JSON.parse(d);
+      // Copy to IndexedDB in background (keep localStorage as backup)
+      if(typeof indexedDB!=='undefined'){saveFlowerImages().catch(()=>{});}
+    }
+  }catch(e){console.log('localStorage load error',e);}
 }
 
 async function saveFlowerImages(){
-  try{
-    const db=await openIDB();
-    const tx=db.transaction(IDB_STORE,'readwrite');
-    tx.objectStore(IDB_STORE).put(flowerImages,'flowerImages');
-    await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});
-    db.close();
-  }catch(e){
-    console.error('IDB save error, fallback localStorage',e);
-    try{localStorage.setItem('enc_images',JSON.stringify(flowerImages));}
-    catch(e2){
-      console.error('localStorage also failed',e2);
-      alert('⚠️ Không thể lưu hình ảnh! Bộ nhớ trình duyệt đầy.\nHãy thử xoá bớt hình ảnh hoặc xoá bớt loài hoa cũ.');
-    }
+  // Try IndexedDB first
+  if(typeof indexedDB!=='undefined'){
+    try{
+      const db=await openIDB();
+      const tx=db.transaction(IDB_STORE,'readwrite');
+      tx.objectStore(IDB_STORE).put(flowerImages,'flowerImages');
+      await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});
+      db.close();
+      // Also update localStorage backup (ignore quota errors)
+      try{localStorage.setItem('enc_images',JSON.stringify(flowerImages));}catch(e){}
+      return;
+    }catch(e){console.error('IDB save error',e);}
+  }
+  // Fallback: localStorage only
+  try{localStorage.setItem('enc_images',JSON.stringify(flowerImages));}
+  catch(e){
+    console.error('Storage save failed',e);
+    alert('⚠️ Không thể lưu hình ảnh! Bộ nhớ trình duyệt đầy.\nHãy thử xoá bớt hình ảnh hoặc xoá bớt loài hoa cũ.');
   }
 }
 
@@ -2830,6 +2836,7 @@ function saveDraft(){
 }
 
 async function saveDraftImages(){
+  if(typeof indexedDB==='undefined')return;
   try{
     const imgDraft={};
     if(pendingImgData)imgDraft._img=pendingImgData;
@@ -2854,13 +2861,15 @@ function loadDraft(){
 function clearDraft(){
   try{localStorage.removeItem('enc_draft');}catch(e){}
   // Clear draft images from IndexedDB
-  (async()=>{try{
-    const db=await openIDB();
-    const tx=db.transaction(IDB_STORE,'readwrite');
-    tx.objectStore(IDB_STORE).delete('draftImages');
-    await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});
-    db.close();
-  }catch(e){}})();
+  if(typeof indexedDB!=='undefined'){
+    (async()=>{try{
+      const db=await openIDB();
+      const tx=db.transaction(IDB_STORE,'readwrite');
+      tx.objectStore(IDB_STORE).delete('draftImages');
+      await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});
+      db.close();
+    }catch(e){}})();
+  }
 }
 
 async function restoreDraft(draft){
@@ -2869,7 +2878,7 @@ async function restoreDraft(draft){
     if(el&&draft[fid]!==undefined)el.value=draft[fid];
   });
   // Restore draft images from IndexedDB
-  if(draft._hasImg||draft._hasGal){
+  if((draft._hasImg||draft._hasGal)&&typeof indexedDB!=='undefined'){
     try{
       const db=await openIDB();
       const tx=db.transaction(IDB_STORE,'readonly');
