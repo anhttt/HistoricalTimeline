@@ -818,6 +818,14 @@ body.is-admin .event-card.side-left .event-title { padding-right: 0; padding-lef
 .drop-note {
   font-size: 11px; color: var(--text-muted); margin-top: 7px; line-height: 1.5;
 }
+.draft-bar { display: none; }
+.draft-bar.show {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  background: var(--accent-warm-soft); border: 1px solid var(--accent-warm);
+  border-radius: 8px; padding: 9px 11px; margin-bottom: 13px;
+  font-size: 12.5px; color: var(--text-heading);
+}
+.draft-bar .spacer { margin-left: auto; }
 
 .toast {
   position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(18px);
@@ -962,6 +970,12 @@ body.is-admin .event-card.side-left .event-title { padding-right: 0; padding-lef
     </div>
     <div class="modal-body">
       <div class="msg err" id="editMsg"></div>
+      <div class="draft-bar" id="draftBar">
+        <span>Có nội dung soạn dở chưa lưu của sự kiện này.</span>
+        <span class="spacer"></span>
+        <button type="button" class="mini-btn" id="draftRestore">Khôi phục</button>
+        <button type="button" class="mini-btn" id="draftDrop">Bỏ qua</button>
+      </div>
       <div class="frow frow-2">
         <div>
           <label for="efYear">Năm</label>
@@ -3420,9 +3434,10 @@ function setPreview(slot, src, display) {
   }
 }
 
-function openEditor(id) {
+async function openEditor(id) {
   editingId = id;
   hideMsg('editMsg');
+  document.getElementById('draftBar').classList.remove('show');
   const ev = id ? DATA.find(e => e.id === id) : null;
   document.getElementById('editTitle').textContent = ev ? 'Sửa sự kiện' : 'Thêm sự kiện mới';
   document.getElementById('efYear').value = ev ? ev.year : '';
@@ -3441,7 +3456,87 @@ function openEditor(id) {
   document.getElementById('editDelete').style.display = ev ? '' : 'none';
   document.getElementById('editRevert').style.display = (ev && id && id[0] === 'b' && isEdited(id)) ? '' : 'none';
   openModal('editModal');
+  editSnapshot = editorState();
   setTimeout(() => document.getElementById('efTitle').focus(), 60);
+  if (_db) {
+    try {
+      const raw = await dbGet(LS_DRAFT);
+      if (raw && raw !== editSnapshot) {
+        const o = JSON.parse(raw);
+        if (o && o.id === editingId) {
+          document.getElementById('draftBar').dataset.payload = raw;
+          document.getElementById('draftBar').classList.add('show');
+        }
+      }
+    } catch (err) {}
+  }
+}
+
+/* ---------- Giữ nội dung đang soạn ---------- */
+const LS_DRAFT = 'tl_admin_draft_v1';
+let editSnapshot = '';
+let draftTimer = null;
+
+function editorState() {
+  const g = id => document.getElementById(id);
+  return JSON.stringify({
+    id: editingId,
+    year: g('efYear').value,
+    cat: g('efCat').value,
+    newcat: g('efNewCat').value,
+    title: g('efTitle').value,
+    desc: g('efDesc').value,
+    u1: g('url1').value, d1: g('url1').dataset.data || '', c1: g('cap1').value,
+    u2: g('url2').value, d2: g('url2').dataset.data || '', c2: g('cap2').value
+  });
+}
+
+function editDirty() {
+  return document.getElementById('editModal').classList.contains('show')
+      && editorState() !== editSnapshot;
+}
+
+async function saveDraft() {
+  if (!_db) return;
+  try { await dbSet(LS_DRAFT, editorState()); } catch (err) {}
+}
+async function clearDraft() {
+  draftTimer && clearTimeout(draftTimer);
+  document.getElementById('draftBar').classList.remove('show');
+  if (!_db) return;
+  try { await dbSet(LS_DRAFT, null); } catch (err) {}
+}
+function touchDraft() {
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(saveDraft, 500);
+}
+
+function applyEditorState(o) {
+  const g = id => document.getElementById(id);
+  g('efYear').value = o.year || '';
+  fillCatSelect(o.cat === '__new__' ? 'Khoa học' : o.cat);
+  if (o.cat === '__new__') {
+    g('efCat').value = '__new__';
+    g('efNewCatRow').style.display = '';
+    g('efNewCat').value = o.newcat || '';
+  }
+  g('efTitle').value = o.title || '';
+  g('efDesc').value = o.desc || '';
+  [1, 2].forEach(n => {
+    const u = o['u' + n] || '', d = o['d' + n] || '';
+    g('url' + n).value = u;
+    g('url' + n).dataset.data = d;
+    g('cap' + n).value = o['c' + n] || '';
+    setPreview(n, d || u, d || u);
+  });
+}
+
+/* Đóng trình soạn, hỏi lại nếu còn nội dung chưa lưu */
+function tryCloseEditor() {
+  if (editDirty() && !confirm('Nội dung đang soạn chưa được lưu. Bỏ và đóng cửa sổ?')) return false;
+  clearDraft();
+  closeModal('editModal');
+  return true;
 }
 
 function slotValue(n) {
@@ -3480,6 +3575,7 @@ async function saveEvent() {
     else LOCAL.edits[editingId] = Object.assign({}, rec);
   }
   if (!(await saveLocal())) return;
+  await clearDraft();
   refreshAll();
   closeModal('editModal');
   toast(editingId === null ? 'Đã thêm sự kiện.' : 'Đã lưu thay đổi.');
@@ -3493,6 +3589,7 @@ async function deleteEvent() {
   else if (LOCAL.deleted.indexOf(editingId) === -1) LOCAL.deleted.push(editingId);
   delete LOCAL.edits[editingId];
   if (!(await saveLocal())) return;
+  await clearDraft();
   refreshAll();
   closeModal('editModal');
   toast('Đã xóa sự kiện.');
@@ -3504,6 +3601,7 @@ async function revertEvent() {
   const d = LOCAL.deleted.indexOf(editingId);
   if (d >= 0) LOCAL.deleted.splice(d, 1);
   if (!(await saveLocal())) return;
+  await clearDraft();
   refreshAll();
   closeModal('editModal');
   toast('Đã trả sự kiện về bản gốc.');
@@ -3590,6 +3688,7 @@ function applySlot(n, dataUrl, url, display) {
   el.value = url || '';
   el.dataset.data = dataUrl || '';
   setPreview(n, dataUrl || url || '', display);
+  if (typeof touchDraft === 'function') touchDraft();
 }
 
 /* ---------- Đổi ảnh trong trang thành file trên repo ---------- */
@@ -3606,13 +3705,89 @@ function imgFileName(rec, key) {
   return y + '-' + slugify(rec.title) + '-' + key.slice(-1) + '.' + ext;
 }
 
-function dataUrlToBlob(d) {
-  const i = d.indexOf(',');
-  const mime = (d.slice(0, i).match(/data:([^;]+)/) || [])[1] || 'image/jpeg';
-  const bin = atob(d.slice(i + 1));
+function dataUrlToBytes(d) {
+  const bin = atob(d.slice(d.indexOf(',') + 1));
   const arr = new Uint8Array(bin.length);
   for (let k = 0; k < bin.length; k++) arr[k] = bin.charCodeAt(k);
-  return new Blob([arr], { type: mime });
+  return arr;
+}
+
+function dataUrlToBlob(d) {
+  const mime = (d.slice(0, d.indexOf(',')).match(/data:([^;]+)/) || [])[1] || 'image/jpeg';
+  return new Blob([dataUrlToBytes(d)], { type: mime });
+}
+
+/* ---------- Gói nhiều ảnh vào một file .zip (phương thức "store") ---------- */
+const CRC_TABLE = (function () {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+
+function crc32(buf) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+function zipStore(files) {
+  const enc = new TextEncoder();
+  const body = [], central = [];
+  let offset = 0;
+  files.forEach(f => {
+    const name = enc.encode(f.name);
+    const crc = crc32(f.data);
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true);
+    lh.setUint16(4, 20, true);
+    lh.setUint16(6, 0, true);
+    lh.setUint16(8, 0, true);
+    lh.setUint16(10, 0, true);
+    lh.setUint16(12, 0x21, true);
+    lh.setUint32(14, crc, true);
+    lh.setUint32(18, f.data.length, true);
+    lh.setUint32(22, f.data.length, true);
+    lh.setUint16(26, name.length, true);
+    lh.setUint16(28, 0, true);
+    body.push(new Uint8Array(lh.buffer), name, f.data);
+
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true);
+    ch.setUint16(4, 20, true);
+    ch.setUint16(6, 20, true);
+    ch.setUint16(8, 0, true);
+    ch.setUint16(10, 0, true);
+    ch.setUint16(12, 0, true);
+    ch.setUint16(14, 0x21, true);
+    ch.setUint32(16, crc, true);
+    ch.setUint32(20, f.data.length, true);
+    ch.setUint32(24, f.data.length, true);
+    ch.setUint16(28, name.length, true);
+    ch.setUint16(30, 0, true);
+    ch.setUint16(32, 0, true);
+    ch.setUint16(34, 0, true);
+    ch.setUint16(36, 0, true);
+    ch.setUint32(38, 0, true);
+    ch.setUint32(42, offset, true);
+    central.push(new Uint8Array(ch.buffer), name);
+    offset += 30 + name.length + f.data.length;
+  });
+  let cenSize = 0;
+  central.forEach(c => { cenSize += c.length; });
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true);
+  end.setUint16(4, 0, true);
+  end.setUint16(6, 0, true);
+  end.setUint16(8, files.length, true);
+  end.setUint16(10, files.length, true);
+  end.setUint32(12, cenSize, true);
+  end.setUint32(16, offset, true);
+  end.setUint16(20, 0, true);
+  return new Blob(body.concat(central, [new Uint8Array(end.buffer)]), { type: 'application/zip' });
 }
 
 function saveBlob(blob, name) {
@@ -3623,20 +3798,37 @@ function saveBlob(blob, name) {
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
 
-/* Mọi ảnh đang nằm trong bộ nhớ trình duyệt */
+/* Mọi ảnh đang nhúng thẳng vào dữ liệu — kể cả ảnh đến từ data.json trên repo */
 function storedImages() {
   const out = [];
-  const recs = Object.keys(LOCAL.edits).map(k => LOCAL.edits[k]).concat(LOCAL.added);
-  recs.forEach(rec => ['img1', 'img2'].forEach(key => {
-    if (dataUrlBytes(rec[key])) out.push({ rec: rec, key: key });
+  DATA.forEach(ev => ['img1', 'img2'].forEach(key => {
+    if (dataUrlBytes(ev[key])) {
+      out.push({ id: ev.id, key: key, src: ev[key], year: ev.year, title: ev.title });
+    }
   }));
   return out;
 }
 
 function storedImageBytes() {
   let t = 0;
-  storedImages().forEach(o => { t += dataUrlBytes(o.rec[o.key]); });
+  storedImages().forEach(o => { t += dataUrlBytes(o.src); });
   return t;
+}
+
+/* Bản ghi trong trình duyệt tương ứng với một sự kiện; tạo mới nếu sự kiện
+   đó mới chỉ có trong EVENTS gốc hoặc trong data.json */
+function localRecordFor(id) {
+  const own = LOCAL.added.find(a => a.id === id);
+  if (own) return own;
+  if (LOCAL.edits[id]) return LOCAL.edits[id];
+  const ev = DATA.find(e => e.id === id);
+  if (!ev) return null;
+  LOCAL.edits[id] = {
+    year: ev.year, cat: ev.cat, title: ev.title, desc: ev.desc,
+    img1: ev.img1 || '', img2: ev.img2 || '',
+    cap1: ev.cap1 || '', cap2: ev.cap2 || ''
+  };
+  return LOCAL.edits[id];
 }
 
 /* Tải một ảnh trong trình soạn về máy, rồi thay bằng đường dẫn images/... */
@@ -3653,18 +3845,21 @@ function downloadSlot(n) {
   toast('Đã tải "' + name + '" về máy — nhớ upload vào thư mục images/ của repo.');
 }
 
-/* Tải toàn bộ ảnh về máy và thay bằng đường dẫn, giải phóng bộ nhớ */
+/* Gom toàn bộ ảnh vào một file images.zip và thay bằng đường dẫn */
 async function exportImages() {
   const items = storedImages();
-  if (!items.length) { showMsg('dataMsg', 'Không có ảnh nào đang lưu trong trang.', 'ok'); return; }
-  if (!confirm('Trang sẽ tải ' + items.length + ' file ảnh về máy và thay chúng bằng đường dẫn images/...\n\n'
-      + 'Trình duyệt có thể hỏi "cho phép tải nhiều file" — hãy chọn Cho phép.\n\n'
-      + 'Sau đó bạn upload các file ảnh vào thư mục images/ của repo, cùng với data.json.')) return;
+  if (!items.length) { showMsg('dataMsg', 'Không có ảnh nào đang nhúng trong dữ liệu.', 'ok'); return; }
+  if (!confirm('Gom ' + items.length + ' ảnh vào một file images.zip để tải về, '
+      + 'đồng thời thay chúng trong dữ liệu bằng đường dẫn images/...\n\n'
+      + 'Sau đó bạn giải nén và upload thư mục images/ lên repo, cùng với data.json.')) return;
+
   const used = {};
+  const files = [];
   let freed = 0;
-  for (let i = 0; i < items.length; i++) {
-    const rec = items[i].rec, key = items[i].key;
-    let name = imgFileName(rec, key);
+  items.forEach(it => {
+    const rec = { year: it.year, title: it.title };
+    rec[it.key] = it.src;
+    let name = imgFileName(rec, it.key);
     if (used[name]) {
       const dot = name.lastIndexOf('.');
       let k = 2;
@@ -3672,16 +3867,19 @@ async function exportImages() {
       name = name.slice(0, dot) + '-' + k + name.slice(dot);
     }
     used[name] = 1;
-    freed += dataUrlBytes(rec[key]);
-    try { saveBlob(dataUrlToBlob(rec[key]), name); }
-    catch (err) { showMsg('dataMsg', 'Dừng ở ảnh thứ ' + (i + 1) + ': ' + (err.message || 'không tải được.')); break; }
-    rec[key] = 'images/' + name;
-    await new Promise(r => setTimeout(r, 250));
-  }
+    files.push({ name: 'images/' + name, data: dataUrlToBytes(it.src) });
+    freed += dataUrlBytes(it.src);
+    const target = localRecordFor(it.id);
+    if (target) target[it.key] = 'images/' + name;
+  });
+
+  try { saveBlob(zipStore(files), 'images.zip'); }
+  catch (err) { showMsg('dataMsg', 'Không tạo được file zip: ' + (err.message || 'lỗi không rõ.')); return; }
+
   if (!(await saveLocal())) return;
   refreshAll(); refreshDataStat();
-  showMsg('dataMsg', 'Đã tải ' + items.length + ' ảnh về máy và giải phóng ' + kbText(freed)
-    + '. Hãy upload chúng vào thư mục images/ của repo, rồi bấm "Tải data.json" và upload file đó nữa.', 'ok');
+  showMsg('dataMsg', 'Đã gom ' + files.length + ' ảnh vào images.zip (' + kbText(freed) + ') và giải phóng chỗ. '
+    + 'Giải nén file đó rồi upload thư mục images/ lên repo, sau đó bấm "Tải data.json" và upload file đó nữa.', 'ok');
 }
 
 async function setSlotFromFile(n, file) {
@@ -3737,30 +3935,28 @@ async function handleDrop(n, dt) {
 
 /* Nén lại toàn bộ ảnh đang lưu trong trình duyệt */
 async function shrinkStored() {
-  const recs = Object.keys(LOCAL.edits).map(k => LOCAL.edits[k]).concat(LOCAL.added);
+  const items = storedImages();
   let before = 0, after = 0, count = 0;
-  for (let i = 0; i < recs.length; i++) {
-    const rec = recs[i];
-    const keys = ['img1', 'img2'];
-    for (let j = 0; j < keys.length; j++) {
-      const v = rec[keys[j]];
-      const b = dataUrlBytes(v);
-      if (!b) continue;
-      before += b;
-      let nb = b;
-      /* ảnh đã dưới ngưỡng thì giữ nguyên, tránh nén lại nhiều lần làm giảm chất lượng */
-      if (b > IMG_TARGET_BYTES) {
-        try {
-          const img = await imgFromSrc(v, false);
-          const out = shrinkImage(img);
-          const ob = dataUrlBytes(out);
-          if (ob > 0 && ob < b) { rec[keys[j]] = out; nb = ob; count++; }
-        } catch (err) { /* giữ nguyên */ }
-      }
-      after += nb;
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    const b = dataUrlBytes(it.src);
+    before += b;
+    let nb = b;
+    /* ảnh đã dưới ngưỡng thì giữ nguyên, tránh nén lại nhiều lần làm giảm chất lượng */
+    if (b > IMG_TARGET_BYTES) {
+      try {
+        const img = await imgFromSrc(it.src, false);
+        const out = shrinkImage(img);
+        const ob = dataUrlBytes(out);
+        if (ob > 0 && ob < b) {
+          const target = localRecordFor(it.id);
+          if (target) { target[it.key] = out; nb = ob; count++; }
+        }
+      } catch (err) { /* giữ nguyên */ }
     }
+    after += nb;
   }
-  if (!before) { showMsg('dataMsg', 'Không có ảnh nào được lưu trong trang để nén.', 'ok'); return; }
+  if (!before) { showMsg('dataMsg', 'Không có ảnh nào nhúng trong dữ liệu để nén.', 'ok'); return; }
   if (!(await saveLocal())) return;
   refreshAll(); refreshDataStat();
   showMsg('dataMsg', 'Đã nén lại ' + count + ' ảnh: ' + kbText(before) + ' → ' + kbText(after) + '.', 'ok');
@@ -3836,10 +4032,51 @@ function refreshAll() {
 /* ---------- Khởi tạo ---------- */
 function initAdmin() {
   document.querySelectorAll('[data-close]').forEach(b => {
-    b.addEventListener('click', () => closeModal(b.dataset.close));
+    b.addEventListener('click', () => {
+      if (b.dataset.close === 'editModal') tryCloseEditor();
+      else closeModal(b.dataset.close);
+    });
   });
   document.querySelectorAll('.modal-wrap').forEach(w => {
-    w.addEventListener('click', e => { if (e.target === w) closeModal(w.id); });
+    w.addEventListener('click', e => {
+      if (e.target !== w) return;
+      /* Trình soạn không đóng khi bấm ra ngoài nếu đang có nội dung chưa lưu */
+      if (w.id === 'editModal') {
+        if (editDirty()) { toast('Nội dung chưa lưu — bấm Lưu, hoặc Hủy nếu muốn bỏ.'); return; }
+        tryCloseEditor();
+        return;
+      }
+      closeModal(w.id);
+    });
+  });
+
+  /* Phím Esc: giống nút Hủy */
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (document.getElementById('editModal').classList.contains('show')) { tryCloseEditor(); return; }
+    const open = document.querySelector('.modal-wrap.show');
+    if (open) closeModal(open.id);
+  });
+
+  /* Nhắc trước khi rời trang nếu đang soạn dở */
+  window.addEventListener('beforeunload', e => {
+    if (editDirty()) { e.preventDefault(); e.returnValue = ''; }
+  });
+
+  /* Tự lưu nội dung đang soạn */
+  const em = document.getElementById('editModal');
+  ['input', 'change'].forEach(evt => em.addEventListener(evt, touchDraft));
+
+  document.getElementById('draftRestore').addEventListener('click', () => {
+    const bar = document.getElementById('draftBar');
+    try { applyEditorState(JSON.parse(bar.dataset.payload || '{}')); }
+    catch (err) { showMsg('editMsg', 'Không đọc được nội dung soạn dở.'); }
+    bar.classList.remove('show');
+    toast('Đã khôi phục nội dung soạn dở.');
+  });
+  document.getElementById('draftDrop').addEventListener('click', () => {
+    document.getElementById('draftBar').classList.remove('show');
+    clearDraft();
   });
 
   document.getElementById('adminBtn').addEventListener('click', () => {
