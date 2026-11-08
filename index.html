@@ -1069,10 +1069,12 @@ body.is-admin .event-card.side-left .event-title { padding-right: 0; padding-lef
       <div style="display:flex;flex-wrap:wrap;gap:8px">
         <button class="mbtn primary" id="dlData">Tải data.json</button>
         <button class="mbtn" id="impData">Nạp từ file data.json</button>
+        <button class="mbtn" id="chkImgs">Kiểm tra ảnh hỏng</button>
         <button class="mbtn" id="expImgs">Chuyển ảnh thành file</button>
         <button class="mbtn" id="shrinkAll">Nén lại ảnh đã lưu</button>
         <button class="mbtn danger" id="clrData">Xóa toàn bộ thay đổi cục bộ</button>
       </div>
+      <div id="checkOut"></div>
       <input type="file" id="dataFile" accept=".json,application/json" style="display:none">
     </div>
     <div class="modal-foot">
@@ -3177,6 +3179,7 @@ function imgHtml(ev) {
   if (!slots.length) return '';
   return '<div class="event-imgs">' + slots.map(p =>
     `<figure><img src="${escAttr(p[0])}" alt="${escAttr(p[1] || ev.title)}" loading="lazy"`
+    + ` onerror="this.parentNode.style.display='none'"`
     + ` data-full="${escAttr(p[0])}" data-cap="${escAttr(p[1])}">`
     + (p[1] ? `<figcaption>${escAttr(p[1])}</figcaption>` : '')
     + '</figure>').join('') + '</div>';
@@ -3557,6 +3560,16 @@ async function saveEvent() {
   }
   const title = document.getElementById('efTitle').value.trim();
   if (!title) { showMsg('editMsg', 'Hãy nhập tiêu đề sự kiện.'); return; }
+
+  /* Cảnh báo nếu ô địa chỉ ảnh trỏ tới một trang web thay vì một tấm ảnh */
+  for (const n of [1, 2]) {
+    const v = document.getElementById('url' + n).value.trim();
+    if (!v || /^images\//i.test(v)) continue;
+    if (/\.(jpe?g|png|webp|gif|avif|svg)(\?|#|$)/i.test(v)) continue;
+    const ok = await checkImageUrl(v);
+    if (!ok && !confirm('Địa chỉ ở Hình ' + n + ' có vẻ không phải ảnh:\n' + v.slice(0, 90)
+        + '\n\nẢnh này sẽ không hiện ra. Vẫn lưu?')) { return; }
+  }
   const desc = document.getElementById('efDesc').value.trim();
 
   const rec = {
@@ -3845,6 +3858,72 @@ function downloadSlot(n) {
   toast('Đã tải "' + name + '" về máy — nhớ upload vào thư mục images/ của repo.');
 }
 
+/* ---------- Kiểm tra ảnh hỏng ---------- */
+let BROKEN = [];
+
+function checkImageUrl(src) {
+  return new Promise(resolve => {
+    if (!src) return resolve(false);
+    const im = new Image();
+    let done = false;
+    const finish = v => { if (!done) { done = true; resolve(v); } };
+    im.onload = () => finish(true);
+    im.onerror = () => finish(false);
+    setTimeout(() => finish(false), 12000);
+    im.src = src;
+  });
+}
+
+function allImageRefs() {
+  const out = [];
+  DATA.forEach(ev => ['img1', 'img2'].forEach(key => {
+    if (ev[key]) out.push({ id: ev.id, key: key, src: ev[key], year: ev.year, title: ev.title });
+  }));
+  return out;
+}
+
+async function checkImages() {
+  const items = allImageRefs();
+  BROKEN = [];
+  document.getElementById('checkOut').innerHTML = '';
+  if (!items.length) { showMsg('dataMsg', 'Chưa có sự kiện nào gắn ảnh.', 'ok'); return; }
+  showMsg('dataMsg', 'Đang kiểm tra ' + items.length + ' ảnh…', 'ok');
+  for (let i = 0; i < items.length; i++) {
+    if (!(await checkImageUrl(items[i].src))) BROKEN.push(items[i]);
+  }
+  if (!BROKEN.length) {
+    showMsg('dataMsg', 'Đã kiểm tra ' + items.length + ' ảnh — tất cả đều hiện được.', 'ok');
+    return;
+  }
+  showMsg('dataMsg', 'Có ' + BROKEN.length + '/' + items.length + ' ảnh không hiện được.', 'err');
+  const rows = BROKEN.slice(0, 40).map(it =>
+    `<div style="padding:5px 0;border-bottom:1px solid var(--line)">` +
+    `<strong>${escAttr(it.title)}</strong> — Hình ${it.key.slice(-1)}<br>` +
+    `<span style="color:var(--text-muted);word-break:break-all">${escAttr(String(it.src).slice(0, 110))}</span></div>`
+  ).join('');
+  document.getElementById('checkOut').innerHTML =
+    `<div style="max-height:220px;overflow:auto;font-size:12px;margin:12px 0;` +
+    `border:1px solid var(--line);border-radius:8px;padding:9px 11px">${rows}` +
+    (BROKEN.length > 40 ? `<div style="padding-top:6px;color:var(--text-muted)">… và ${BROKEN.length - 40} ảnh nữa</div>` : '') +
+    `</div><button class="mbtn danger" id="clrBroken">Xóa ${BROKEN.length} ảnh hỏng khỏi dữ liệu</button>`;
+  document.getElementById('clrBroken').addEventListener('click', clearBroken);
+}
+
+async function clearBroken() {
+  if (!BROKEN.length) return;
+  if (!confirm('Xóa ' + BROKEN.length + ' ảnh không hiện được khỏi dữ liệu? Nội dung chữ của các sự kiện giữ nguyên.')) return;
+  BROKEN.forEach(it => {
+    const rec = localRecordFor(it.id);
+    if (rec) { rec[it.key] = ''; rec['cap' + it.key.slice(-1)] = ''; }
+  });
+  const n = BROKEN.length;
+  BROKEN = [];
+  if (!(await saveLocal())) return;
+  document.getElementById('checkOut').innerHTML = '';
+  refreshAll(); refreshDataStat();
+  showMsg('dataMsg', 'Đã xóa ' + n + ' ảnh hỏng. Nhớ bấm "Tải data.json" và upload lại lên repo.', 'ok');
+}
+
 /* Gom toàn bộ ảnh vào một file images.zip và thay bằng đường dẫn */
 async function exportImages() {
   const items = storedImages();
@@ -3900,9 +3979,23 @@ async function setSlotFromUrl(n, url) {
     toast('Đã nén ảnh còn ' + kbText(dataUrlBytes(out)) + '.');
     return;
   }
-  let img = null;
-  try { img = await imgFromSrc(url, true); } catch (err) { img = null; }
-  if (img) {
+  /* Bước 1: thử tải kèm CORS để có thể nén */
+  let img = null, corsOK = true;
+  try { img = await imgFromSrc(url, true); } catch (err) { img = null; corsOK = false; }
+
+  /* Bước 2: không được thì thử tải thường, chỉ để xác nhận đây đúng là ảnh */
+  if (!img) {
+    try { img = await imgFromSrc(url, false); } catch (err) { img = null; }
+  }
+
+  if (!img) {
+    throw new Error('Địa chỉ này không phải là ảnh nên không dùng được: ' + url.slice(0, 70)
+      + '\n\nHãy bấm chuột phải lên chính tấm ảnh rồi chọn "Sao chép địa chỉ hình ảnh" '
+      + '(Copy image address) — địa chỉ đúng thường kết thúc bằng .jpg, .png hoặc .webp. '
+      + 'Hoặc lưu ảnh về máy rồi kéo file ảnh vào ô này.');
+  }
+
+  if (corsOK) {
     try {
       const out = shrinkImage(img);
       applySlot(n, out, '');
@@ -3920,13 +4013,15 @@ async function handleDrop(n, dt) {
   const f = files.filter(x => x.type && x.type.indexOf('image/') === 0)[0];
   if (f) return setSlotFromFile(n, f);
 
+  /* Khi kéo ảnh từ trang web, text/uri-list thường là LIÊN KẾT của ảnh
+     (một trang HTML), còn địa chỉ ảnh thật nằm trong text/html. Ưu tiên cái sau. */
   let url = '';
-  const uri = dt.getData('text/uri-list') || '';
-  url = uri.split('\n').map(x => x.trim()).filter(x => x && x[0] !== '#')[0] || '';
+  const html = dt.getData('text/html') || '';
+  const m = html.match(/<img[^>]+src\s*=\s*["']([^"']+)["']/i);
+  if (m) url = m[1];
   if (!url) {
-    const html = dt.getData('text/html') || '';
-    const m = html.match(/<img[^>]+src\s*=\s*["']([^"']+)["']/i);
-    if (m) url = m[1];
+    const uri = dt.getData('text/uri-list') || '';
+    url = uri.split('\n').map(x => x.trim()).filter(x => x && x[0] !== '#')[0] || '';
   }
   if (!url) url = (dt.getData('text/plain') || '').trim();
   if (!url) throw new Error('Không nhận được ảnh — hãy thử kéo trực tiếp file ảnh từ máy.');
@@ -4215,6 +4310,7 @@ function initAdmin() {
   document.getElementById('dlData').addEventListener('click', downloadData);
   document.getElementById('shrinkAll').addEventListener('click', shrinkStored);
   document.getElementById('expImgs').addEventListener('click', exportImages);
+  document.getElementById('chkImgs').addEventListener('click', checkImages);
   document.getElementById('impData').addEventListener('click', () => document.getElementById('dataFile').click());
   document.getElementById('dataFile').addEventListener('change', e => {
     const f = e.target.files && e.target.files[0];
